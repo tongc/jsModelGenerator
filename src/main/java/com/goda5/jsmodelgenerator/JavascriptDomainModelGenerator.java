@@ -1,14 +1,32 @@
 package com.goda5.jsmodelgenerator;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.lang.reflect.Field;
 
 public class JavascriptDomainModelGenerator {
 	public void generate(Class<?> clazz, File targetJsFolder) throws Exception {
+		StringBuilder b = new StringBuilder();
+		String prefix = "";
+		String suffix = ";";
 		if (clazz.isAnnotationPresent(JavascriptDomainModel.class)) {
+			b.append("function " + clazz.getSimpleName() + "(");
 			for(Field field:clazz.getDeclaredFields()) {
-
+				b.append(prefix);
+				prefix = ", ";
+				b.append(field.getName());
 			}
+			b.append(") {" + System.getProperty("line.separator"));
+			for(Field field:clazz.getDeclaredFields()) {
+				b.append("    this." + field.getName() + " = " + field.getName() + suffix + System.getProperty("line.separator"));
+			}
+			b.append("}");
+			if(!targetJsFolder.exists()) {
+				targetJsFolder.mkdirs();
+			}
+			FileWriter fw = new FileWriter(targetJsFolder + "/" + clazz.getSimpleName() + ".js");
+			fw.write(b.toString());
+			fw.close();
 		}
 	}
 }

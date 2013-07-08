@@ -26,6 +26,9 @@ public class JavascriptDomainModelGeneratorMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project.compileSourceRoots}")
 	private List<String> compileSourceRoots;
 
+	@Parameter(defaultValue = "${basedir}")
+	private String baseDir;
+
 	@Parameter(defaultValue = "${project.build.outputDirectory}")
 	private String outputDir;
 
@@ -56,11 +59,10 @@ public class JavascriptDomainModelGeneratorMojo extends AbstractMojo {
 			    .setScanners(new TypeAnnotationsScanner())
 			    .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix(p))));
 				for(String fullClassName:reflections.getStore().getStoreMap().get("TypeAnnotationsScanner").get(JavascriptDomainModel.class.getName())) {
-					getLog().info(fullClassName);
-					generator.generate(cl.loadClass(fullClassName), new File(targetJsFolder));
+					getLog().info("Processing class : " + fullClassName);
+					generator.generate(cl.loadClass(fullClassName), new File(baseDir + targetJsFolder));
 				}
 			}
-
 		} catch (Exception e) {
 			throw new MojoExecutionException(e.getMessage(), e);
 		}
