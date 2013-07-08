@@ -1,25 +1,27 @@
 package com.goda5.jsmodelgenerator;
 
 import java.io.File;
-import java.util.Collections;
-import java.util.HashSet;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.codehaus.plexus.compiler.util.scan.InclusionScanException;
-import org.codehaus.plexus.compiler.util.scan.SimpleSourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.SourceInclusionScanner;
-import org.codehaus.plexus.compiler.util.scan.mapping.SourceMapping;
-import org.codehaus.plexus.compiler.util.scan.mapping.SuffixMapping;
+import org.apache.maven.project.MavenProject;
+import org.reflections.Reflections;
+import org.reflections.scanners.TypeAnnotationsScanner;
+import org.reflections.util.ClasspathHelper;
+import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 
 @Mojo(name = "generateJs")
 public class JavascriptDomainModelGeneratorMojo extends AbstractMojo {
-	@Parameter(property = "generateJs.sourceDir", defaultValue = "**/*.java")
-	private Set<String> includes;
+	@Parameter(property = "generateJs.packages")
+	private Set<String> packages;
 
 	@Parameter(defaultValue = "${project.compileSourceRoots}")
 	private List<String> compileSourceRoots;
@@ -27,24 +29,40 @@ public class JavascriptDomainModelGeneratorMojo extends AbstractMojo {
 	@Parameter(defaultValue = "${project.build.outputDirectory}")
 	private String outputDir;
 
+	@Parameter(property = "generateJs.targetJsFolder")
+	private String targetJsFolder;
+
+	@Component
+	private MavenProject project;
+
+	private JavascriptDomainModelGenerator generator = new JavascriptDomainModelGenerator();
+
 	public void execute() throws MojoExecutionException {
-		Set<File> files = new HashSet<File>();
-		SourceInclusionScanner scanner = new SimpleSourceInclusionScanner(
-				includes, Collections.<String> emptySet());
-		SourceMapping mapping = new SuffixMapping(".java", ".class");
-		scanner.addSourceMapping(mapping);
-		getLog().info("Checking source folder(s): " + compileSourceRoots);
-		for (String sourceRoot : compileSourceRoots) {
-			try {
-				files.addAll(scanner.getIncludedSources(new File(sourceRoot),
-						new File(outputDir)));
-			} catch (InclusionScanException e) {
-				throw new MojoExecutionException(
-						"Error scanning source root: \'"
-								+ new File(sourceRoot).getPath() + "\' "
-								+ "for stale files to recompile.", e);
+		List<String> runtimeClasspathElements;
+		try {
+			runtimeClasspathElements = project.getCompileClasspathElements();
+			URL[] runtimeUrls = new URL[runtimeClasspathElements.size()];
+			for (int i = 0; i < runtimeClasspathElements.size(); i++) {
+				String element = runtimeClasspathElements.get(i);
+				getLog().debug("Classpath:" + element);
+				runtimeUrls[i] = new File(element).toURI().toURL();
 			}
+
+			ClassLoader cl = new URLClassLoader(runtimeUrls, Thread.currentThread()
+					.getContextClassLoader());
+			for(String p:packages) {
+				Reflections reflections = new Reflections(new ConfigurationBuilder()
+			    .setUrls(ClasspathHelper.forClassLoader(new ClassLoader[]{cl}))
+			    .setScanners(new TypeAnnotationsScanner())
+			    .filterInputsBy(new FilterBuilder().include(FilterBuilder.prefix(p))));
+				for(String fullClassName:reflections.getStore().getStoreMap().get("TypeAnnotationsScanner").get(JavascriptDomainModel.class.getName())) {
+					getLog().info(fullClassName);
+					generator.generate(cl.loadClass(fullClassName), new File(targetJsFolder));
+				}
+			}
+
+		} catch (Exception e) {
+			throw new MojoExecutionException(e.getMessage(), e);
 		}
-		getLog().info("Hello, world." + files);
 	}
 }
