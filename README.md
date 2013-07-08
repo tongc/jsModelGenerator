@@ -1,4 +1,5 @@
 Please see below example for sample configuration.
+
 	<plugin>
 		<groupId>com.goda5</groupId>
 		<artifactId>jsModelGenerator</artifactId>
@@ -20,6 +21,7 @@ Please see below example for sample configuration.
 	</plugin>
 
 Which will generate Editing.js
+
 	function Editing(source, posStart, posEnd, value) {
     	this.source = source;
     	this.posStart = posStart;
@@ -27,6 +29,7 @@ Which will generate Editing.js
     	this.value = value;
 	}
 From given input Editing.java
+
 	@JavascriptDomainModel
 	public class Editing {
 		private String source;
