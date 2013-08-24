@@ -16,15 +16,15 @@ public class JavascriptDomainModelGenerator {
 			for(Field field:clazz.getDeclaredFields()) {
 				if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
 					b.append(prefix);
-					prefix = "";
+					prefix = ", ";
 					b.append(field.getName());
 				}
 			}
 			b.append(") {" + System.getProperty("line.separator"));
 			for(Field field:clazz.getDeclaredFields()) {
 				if(!Modifier.isStatic(field.getModifiers()) && !Modifier.isFinal(field.getModifiers())) {
-					if(field.getType().isAssignableFrom(Collection.class)) {
-						b.append("//Array" + System.getProperty("line.separator"));
+					if(Collection.class.isAssignableFrom(field.getType())) {
+						b.append("    //Array" + System.getProperty("line.separator"));
 					}
 					b.append("    this." + field.getName() + " = " + field.getName() + suffix + System.getProperty("line.separator"));
 				}
